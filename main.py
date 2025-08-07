@@ -127,17 +127,20 @@ class UCKingdomBot:
         logger.info("Stopping UC Kingdom Bot...")
         await self.application.stop()
 
-async def main():
+def main():
     bot = UCKingdomBot()
     try:
-        await bot.run()
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(bot.initialize())
+        logger.info("Starting UC Kingdom Bot...")
+        
+        bot.application.run_polling(allowed_updates=Update.ALL_TYPES)
     except KeyboardInterrupt:
         logger.info("Bot stopped by user")
     except Exception as e:
         logger.error(f"Bot crashed: {e}")
         raise
-    finally:
-        await bot.stop()
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()

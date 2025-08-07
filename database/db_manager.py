@@ -34,21 +34,8 @@ class DatabaseManager:
 
     async def _create_collections_if_not_exist(self):
         try:
-            loop = asyncio.get_event_loop()
-            collections = await loop.run_in_executor(None, self.databases.list_collections, self.database_id)
-            existing_collections = {col['$id'] for col in collections['collections']}
-            
-            if self.users_collection not in existing_collections:
-                await loop.run_in_executor(None, self.databases.create_collection,
-                    self.database_id, self.users_collection, 'Users')
-            
-            if self.games_collection not in existing_collections:
-                await loop.run_in_executor(None, self.databases.create_collection,
-                    self.database_id, self.games_collection, 'Games')
-            
-            if self.game_players_collection not in existing_collections:
-                await loop.run_in_executor(None, self.databases.create_collection,
-                    self.database_id, self.game_players_collection, 'GamePlayers')
+            logger.info("Skipping collection initialization - assuming collections exist")
+            return
         except AppwriteException as e:
             if e.code != 409:
                 raise
