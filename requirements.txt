@@ -1,5 +1,5 @@
 python-telegram-bot==20.7
-appwrite==4.1.0
+appwrite==9.0.3
 python-dotenv==1.0.0
 asyncio-mqtt==0.16.1
 aiofiles==23.2.1

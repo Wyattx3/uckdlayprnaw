@@ -18,7 +18,7 @@ class DatabaseManager:
         self.client.set_key(APPWRITE_API_KEY)
         
         self.databases = Databases(self.client)
-        self.database_id = APPWRITE_PROJECT_ID
+        self.database_id = 'uc_kingdom_db'
         
         self.users_collection = 'users'
         self.games_collection = 'games'
@@ -38,7 +38,7 @@ class DatabaseManager:
             loop = asyncio.get_event_loop()
             
             try:
-                await loop.run_in_executor(None, self.databases.get, self.database_id, self.users_collection)
+                await loop.run_in_executor(None, self.databases.get_collection, self.database_id, self.users_collection)
                 logger.info("Collections already exist")
             except AppwriteException as e:
                 if e.code == 404:
