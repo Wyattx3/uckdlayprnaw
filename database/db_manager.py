@@ -34,11 +34,22 @@ class DatabaseManager:
 
     async def _create_collections_if_not_exist(self):
         try:
-            logger.info("Skipping collection initialization - assuming collections exist")
+            logger.info("Checking collections existence...")
+            loop = asyncio.get_event_loop()
+            
+            try:
+                await loop.run_in_executor(None, self.databases.get, self.database_id, self.users_collection)
+                logger.info("Collections already exist")
+            except AppwriteException as e:
+                if e.code == 404:
+                    logger.info("Collections not found - assuming they exist in cloud")
+                else:
+                    logger.warning(f"Collection check failed: {e}")
+            
             return
-        except AppwriteException as e:
-            if e.code != 409:
-                raise
+        except Exception as e:
+            logger.warning(f"Collection initialization check failed: {e}")
+            return
 
     async def create_user(self, user: User) -> bool:
         try:

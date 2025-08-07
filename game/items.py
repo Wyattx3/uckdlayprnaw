@@ -149,3 +149,7 @@ class ItemSystem:
 
     def get_all_items(self) -> Dict[str, Dict[str, Any]]:
         return self.items.copy()
+    
+    def get_available_items(self) -> List[str]:
+        """Get list of all available item keys"""
+        return list(self.items.keys())

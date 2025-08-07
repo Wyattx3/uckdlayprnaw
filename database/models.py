@@ -73,6 +73,18 @@ class User:
             'current_stars': current_stars,
             'rank_index': rank_index
         }
+    
+    def add_performance_stars(self, stars: int):
+        """Add performance stars to user's total"""
+        self.rank_stars += stars
+    
+    def subtract_performance_stars(self, stars: int):
+        """Subtract performance stars from user's total"""
+        self.rank_stars = max(0, self.rank_stars - stars)
+    
+    def calculate_brick_reward(self, performance_stars: int) -> int:
+        """Calculate brick reward based on performance stars (1 star = 10 bricks)"""
+        return performance_stars * 10
 
 class Game:
     def __init__(self, game_id: str, chat_id: int, creator_id: int, current_phase: str = 'lobby',
