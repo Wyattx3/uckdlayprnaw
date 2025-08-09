@@ -74,7 +74,7 @@ class Tiger(BaseRole):
         return True
 
     async def get_night_action_prompt(self, game_manager, available_targets: List[int]) -> Optional[Dict[str, Any]]:
-        leopard_alive = await game_manager.is_role_alive('Leopard')
+        leopard_alive = await game_manager.is_role_alive(self.game_id, 'Leopard')
         
         if leopard_alive:
             return None

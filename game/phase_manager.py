@@ -198,7 +198,7 @@ class PhaseManager:
         self.night_actions.clear()
         self.pending_actions.clear()
         
-        await self.game_manager.start_day_phase()
+        await self.game_manager.start_day_phase(self.game_id)
 
     async def announce_night_results(self, deaths: List[tuple], notifications: List[str]):
         game = await self.game_manager.db_manager.get_game(self.game_id)

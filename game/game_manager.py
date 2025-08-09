@@ -122,8 +122,8 @@ class GameManager:
                 
                 await self.send_pm(player.user_id, message)
 
-    async def start_day_phase(self):
-        game = await self.db_manager.get_game(self.game_id)
+    async def start_day_phase(self, game_id: str):
+        game = await self.db_manager.get_game(game_id)
         if not game:
             return
         
@@ -143,17 +143,17 @@ class GameManager:
         
         await asyncio.sleep(DAY_DISCUSSION_TIME)
         
-        voting_system = VotingSystem(self, self.game_id)
-        self.voting_systems[self.game_id] = voting_system
+        voting_system = VotingSystem(self, game_id)
+        self.voting_systems[game_id] = voting_system
         
         await voting_system.start_voting_phase()
 
-    async def check_win_condition(self) -> Optional[str]:
-        game_players = await self.db_manager.get_game_players(self.game_id)
+    async def check_win_condition(self, game_id: str) -> Optional[str]:
+        game_players = await self.db_manager.get_game_players(game_id)
         active_players = [p for p in game_players if not p.eliminated]
         
         if not active_players:
-            await self.end_game('Draw', [])
+            await self.end_game(game_id, 'Draw', [])
             return 'Draw'
         
         team_counts = {}
@@ -167,36 +167,36 @@ class GameManager:
         
         if predator_count == 0:
             winners = [p.user_id for p in active_players if get_team_for_role(p.role) == 'villager']
-            await self.end_game('Villagers', winners)
+            await self.end_game(game_id, 'Villagers', winners)
             return 'Villagers'
         
         if predator_count >= villager_count:
             winners = [p.user_id for p in active_players if get_team_for_role(p.role) in ['predator', 'predator_aligned']]
-            await self.end_game('Predators', winners)
+            await self.end_game(game_id, 'Predators', winners)
             return 'Predators'
         
-        game = await self.db_manager.get_game(self.game_id)
+        game = await self.db_manager.get_game(game_id)
         if game and game.round_number >= MAX_ROUNDS:
             winners = [p.user_id for p in active_players if get_team_for_role(p.role) in ['predator', 'predator_aligned']]
-            await self.end_game('Predators', winners)
+            await self.end_game(game_id, 'Predators', winners)
             return 'Predators'
         
         if game:
-            phase_manager = self.phase_managers.get(self.game_id)
+            phase_manager = self.phase_managers.get(game_id)
             if phase_manager:
                 await phase_manager.start_night_phase()
         
         return None
 
-    async def end_game(self, winning_team: str, winners: List[int]):
-        game = await self.db_manager.get_game(self.game_id)
+    async def end_game(self, game_id: str, winning_team: str, winners: List[int]):
+        game = await self.db_manager.get_game(game_id)
         if not game:
             return
         
         game.current_phase = 'finished'
         await self.db_manager.update_game(game)
         
-        game_players = await self.db_manager.get_game_players(self.game_id)
+        game_players = await self.db_manager.get_game_players(game_id)
         
         message = ""
         if winning_team == 'Villagers':
@@ -205,7 +205,7 @@ class GameManager:
             for player in game_players:
                 if not player.eliminated and get_team_for_role(player.role) == 'villager':
                     player_ign = await self.get_player_ign(player.user_id)
-                    role_instance = self.role_factory.create_role(player.role, player.user_id, self.game_id)
+                    role_instance = self.role_factory.create_role(player.role, player.user_id, game_id)
                     message += f"{role_instance.get_role_emoji()} {player_ign} ({role_instance.get_role_name()})\n"
         
         elif winning_team == 'Predators':
@@ -214,7 +214,7 @@ class GameManager:
             for player in game_players:
                 if not player.eliminated and get_team_for_role(player.role) in ['predator', 'predator_aligned']:
                     player_ign = await self.get_player_ign(player.user_id)
-                    role_instance = self.role_factory.create_role(player.role, player.user_id, self.game_id)
+                    role_instance = self.role_factory.create_role(player.role, player.user_id, game_id)
                     message += f"{role_instance.get_role_emoji()} {player_ign} ({role_instance.get_role_name()})\n"
         
         elif winning_team == 'Fox':
@@ -225,12 +225,12 @@ class GameManager:
         
         await self.send_group_message(game.chat_id, message)
         
-        await self.calculate_performance_and_rewards(winning_team, winners)
+        await self.calculate_performance_and_rewards(game_id, winning_team, winners)
         
-        await self.cleanup_game()
+        await self.cleanup_game(game_id)
 
-    async def calculate_performance_and_rewards(self, winning_team: str, winners: List[int]):
-        game_players = await self.db_manager.get_game_players(self.game_id)
+    async def calculate_performance_and_rewards(self, game_id: str, winning_team: str, winners: List[int]):
+        game_players = await self.db_manager.get_game_players(game_id)
         
         performance_message = "\n--- **Performance** ---\n"
         if winning_team == 'Villagers':
@@ -246,7 +246,7 @@ class GameManager:
                 continue
             
             player_ign = user.ign
-            role_instance = self.role_factory.create_role(player.role, player.user_id, self.game_id)
+            role_instance = self.role_factory.create_role(player.role, player.user_id, game_id)
             
             stars = 1
             bricks_earned = 0
@@ -269,24 +269,24 @@ class GameManager:
             star_display = "✨" * stars
             performance_message += f"{role_instance.get_role_emoji()} {player_ign} {star_display} (Bricks: +{bricks_earned})\n"
         
-        game = await self.db_manager.get_game(self.game_id)
+        game = await self.db_manager.get_game(game_id)
         if game:
             await self.send_group_message(game.chat_id, performance_message)
 
-    async def cleanup_game(self):
-        await self.db_manager.delete_game_players(self.game_id)
-        await self.db_manager.delete_game(self.game_id)
+    async def cleanup_game(self, game_id: str):
+        await self.db_manager.delete_game_players(game_id)
+        await self.db_manager.delete_game(game_id)
         
-        self.active_games.pop(self.game_id, None)
-        self.phase_managers.pop(self.game_id, None)
-        self.voting_systems.pop(self.game_id, None)
+        self.active_games.pop(game_id, None)
+        self.phase_managers.pop(game_id, None)
+        self.voting_systems.pop(game_id, None)
 
     async def get_player_ign(self, user_id: int) -> str:
         user = await self.db_manager.get_user(user_id)
         return user.ign if user else f"User{user_id}"
 
-    async def is_role_alive(self, role_name: str) -> bool:
-        game_players = await self.db_manager.get_game_players(self.game_id)
+    async def is_role_alive(self, game_id: str, role_name: str) -> bool:
+        game_players = await self.db_manager.get_game_players(game_id)
         for player in game_players:
             if player.role == role_name and not player.eliminated:
                 return True

@@ -144,7 +144,7 @@ class GameLobbyHandler:
                     chat_id,
                     f"❌ Game cancelled due to insufficient players. Need at least {MIN_PLAYERS} players."
                 )
-                await self.game_manager.cleanup_game()
+                await self.game_manager.cleanup_game(game_id)
         
         except asyncio.CancelledError:
             pass

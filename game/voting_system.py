@@ -24,7 +24,7 @@ class VotingSystem:
         active_players = [p for p in game_players if not p.eliminated]
         
         if len(active_players) <= 1:
-            await self.game_manager.check_win_condition()
+            await self.game_manager.check_win_condition(self.game_id)
             return
         
         message = "Time to vote! Who is suspicious? You have 15 seconds. ⚖️\n\n"
@@ -74,7 +74,7 @@ class VotingSystem:
                 game.chat_id,
                 "No votes were cast. The village remains divided. 🤷‍♂️"
             )
-            await self.game_manager.check_win_condition()
+            await self.game_manager.check_win_condition(self.game_id)
             return
         
         vote_counts = Counter(self.votes)
@@ -106,7 +106,7 @@ class VotingSystem:
             
             if eliminated_player.role == 'Fox':
                 message += f"\nThe village decided to eliminate {eliminated_ign}... It was the Fox! 🦊 Deceived until the end, the Fox wins its cunning game!"
-                await self.game_manager.end_game('Fox', [eliminated_player_id])
+                await self.game_manager.end_game(self.game_id, 'Fox', [eliminated_player_id])
                 return
         
         await self.game_manager.send_group_message(game.chat_id, message)
@@ -114,7 +114,7 @@ class VotingSystem:
         self.votes.clear()
         self.voters.clear()
         
-        await self.game_manager.check_win_condition()
+        await self.game_manager.check_win_condition(self.game_id)
 
     def get_vote_count(self, player_id: int) -> int:
         return self.votes.get(player_id, 0)
